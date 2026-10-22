@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import pe.edu.cibertec.servicioseguimiento.client.AcademicoClient;
+import pe.edu.cibertec.servicioseguimiento.client.dto.TareaResponseDto;
 import pe.edu.cibertec.servicioseguimiento.dto.CalificacionDto;
 import pe.edu.cibertec.servicioseguimiento.entity.Calificacion;
 import pe.edu.cibertec.servicioseguimiento.entity.Matricula;
@@ -17,6 +19,7 @@ public class CalificacionService {
 
     private final CalificacionRepository calificacionRepository;
     private final MatriculaService matriculaService;
+    private final AcademicoClient academicoClient;
 
     public List<Calificacion> listarCalificaciones() {
         return calificacionRepository.findAll();
@@ -33,7 +36,8 @@ public class CalificacionService {
     }
 
     public List<Calificacion> listarPorMatricula(Integer idMatricula) {
-        return calificacionRepository.findByMatriculaIdMatricula(idMatricula);
+        return calificacionRepository
+                .findByMatriculaIdMatricula(idMatricula);
     }
 
     public List<Calificacion> listarPorTarea(Integer idTarea) {
@@ -43,7 +47,11 @@ public class CalificacionService {
     public Calificacion registrarCalificacion(CalificacionDto dto) {
 
         Matricula matricula =
-                matriculaService.obtenerMatriculaPorId(dto.getIdMatricula());
+                matriculaService.obtenerMatriculaPorId(
+                        dto.getIdMatricula()
+                );
+
+        validarTarea(dto.getIdTarea(), matricula);
 
         if (calificacionRepository
                 .existsByMatriculaIdMatriculaAndIdTarea(
@@ -74,14 +82,19 @@ public class CalificacionService {
                 obtenerCalificacionPorId(id);
 
         Matricula matricula =
-                matriculaService.obtenerMatriculaPorId(dto.getIdMatricula());
+                matriculaService.obtenerMatriculaPorId(
+                        dto.getIdMatricula()
+                );
+
+        validarTarea(dto.getIdTarea(), matricula);
 
         boolean cambioRelacion =
                 !calificacion.getMatricula()
                         .getIdMatricula()
                         .equals(dto.getIdMatricula())
-                        || !calificacion.getIdTarea()
-                        .equals(dto.getIdTarea());
+                        ||
+                        !calificacion.getIdTarea()
+                                .equals(dto.getIdTarea());
 
         if (cambioRelacion
                 && calificacionRepository
@@ -120,12 +133,24 @@ public class CalificacionService {
                         ? dto.getIdTarea()
                         : calificacion.getIdTarea();
 
+        Matricula matricula =
+                matriculaService.obtenerMatriculaPorId(
+                        nuevaMatricula
+                );
+
+        if (dto.getIdMatricula() != null
+                || dto.getIdTarea() != null) {
+
+            validarTarea(nuevaTarea, matricula);
+        }
+
         boolean cambioRelacion =
                 !calificacion.getMatricula()
                         .getIdMatricula()
                         .equals(nuevaMatricula)
-                        || !calificacion.getIdTarea()
-                        .equals(nuevaTarea);
+                        ||
+                        !calificacion.getIdTarea()
+                                .equals(nuevaTarea);
 
         if (cambioRelacion
                 && calificacionRepository
@@ -140,11 +165,6 @@ public class CalificacionService {
         }
 
         if (dto.getIdMatricula() != null) {
-            Matricula matricula =
-                    matriculaService.obtenerMatriculaPorId(
-                            dto.getIdMatricula()
-                    );
-
             calificacion.setMatricula(matricula);
         }
 
@@ -157,16 +177,48 @@ public class CalificacionService {
         }
 
         if (dto.getFechaRegistro() != null) {
-            calificacion.setFechaRegistro(dto.getFechaRegistro());
+            calificacion.setFechaRegistro(
+                    dto.getFechaRegistro()
+            );
         }
 
         return calificacionRepository.save(calificacion);
     }
 
     public void eliminarCalificacion(Integer id) {
+
         Calificacion calificacion =
                 obtenerCalificacionPorId(id);
 
         calificacionRepository.delete(calificacion);
+    }
+
+    private void validarTarea(
+            Integer idTarea,
+            Matricula matricula) {
+
+        TareaResponseDto tarea =
+                academicoClient.obtenerTareaPorId(idTarea);
+
+        if (!Boolean.TRUE.equals(tarea.getActivo())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La tarea no se encuentra activa"
+            );
+        }
+
+        if (tarea.getAsignacionDocente() == null
+                || tarea.getAsignacionDocente()
+                .getIdAsignacion() == null
+                || !tarea.getAsignacionDocente()
+                .getIdAsignacion()
+                .equals(matricula.getIdAsignacion())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La tarea no pertenece a la asignación de la matrícula"
+            );
+        }
     }
 }
