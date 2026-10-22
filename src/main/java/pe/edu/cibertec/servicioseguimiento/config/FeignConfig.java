@@ -36,4 +36,7 @@ public class FeignConfig {
             }
         };
     }
+
+    public static class SecurityConfig {
+    }
 }

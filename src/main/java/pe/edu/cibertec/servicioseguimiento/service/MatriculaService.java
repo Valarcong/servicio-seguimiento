@@ -60,6 +60,7 @@ public class MatriculaService {
         }
 
         Matricula matricula = new Matricula();
+
         matricula.setIdAlumno(dto.getIdAlumno());
         matricula.setIdAsignacion(dto.getIdAsignacion());
         matricula.setFechaMatricula(dto.getFechaMatricula());
@@ -68,16 +69,21 @@ public class MatriculaService {
         return matriculaRepository.save(matricula);
     }
 
-    public Matricula actualizarMatricula(Integer id, MatriculaDto dto) {
+    public Matricula actualizarMatricula(
+            Integer id,
+            MatriculaDto dto) {
 
-        Matricula matricula = obtenerMatriculaPorId(id);
+        Matricula matricula =
+                obtenerMatriculaPorId(id);
 
         validarAlumno(dto.getIdAlumno());
         validarAsignacion(dto.getIdAsignacion());
 
         boolean cambioAsignacion =
-                !matricula.getIdAlumno().equals(dto.getIdAlumno())
-                        || !matricula.getIdAsignacion().equals(dto.getIdAsignacion());
+                !matricula.getIdAlumno()
+                        .equals(dto.getIdAlumno())
+                        || !matricula.getIdAsignacion()
+                        .equals(dto.getIdAsignacion());
 
         if (cambioAsignacion
                 && matriculaRepository.existsByIdAlumnoAndIdAsignacion(
@@ -97,9 +103,12 @@ public class MatriculaService {
         return matriculaRepository.save(matricula);
     }
 
-    public Matricula actualizarParcialmente(Integer id, MatriculaDto dto) {
+    public Matricula actualizarParcialmente(
+            Integer id,
+            MatriculaDto dto) {
 
-        Matricula matricula = obtenerMatriculaPorId(id);
+        Matricula matricula =
+                obtenerMatriculaPorId(id);
 
         if (dto.getIdAlumno() != null) {
             validarAlumno(dto.getIdAlumno());
@@ -109,17 +118,21 @@ public class MatriculaService {
             validarAsignacion(dto.getIdAsignacion());
         }
 
-        Integer nuevoAlumno = dto.getIdAlumno() != null
-                ? dto.getIdAlumno()
-                : matricula.getIdAlumno();
+        Integer nuevoAlumno =
+                dto.getIdAlumno() != null
+                        ? dto.getIdAlumno()
+                        : matricula.getIdAlumno();
 
-        Integer nuevaAsignacion = dto.getIdAsignacion() != null
-                ? dto.getIdAsignacion()
-                : matricula.getIdAsignacion();
+        Integer nuevaAsignacion =
+                dto.getIdAsignacion() != null
+                        ? dto.getIdAsignacion()
+                        : matricula.getIdAsignacion();
 
         boolean cambioAsignacion =
-                !matricula.getIdAlumno().equals(nuevoAlumno)
-                        || !matricula.getIdAsignacion().equals(nuevaAsignacion);
+                !matricula.getIdAlumno()
+                        .equals(nuevoAlumno)
+                        || !matricula.getIdAsignacion()
+                        .equals(nuevaAsignacion);
 
         if (cambioAsignacion
                 && matriculaRepository.existsByIdAlumnoAndIdAsignacion(
@@ -133,31 +146,75 @@ public class MatriculaService {
         }
 
         if (dto.getIdAlumno() != null) {
-            matricula.setIdAlumno(dto.getIdAlumno());
+            matricula.setIdAlumno(
+                    dto.getIdAlumno()
+            );
         }
 
         if (dto.getIdAsignacion() != null) {
-            matricula.setIdAsignacion(dto.getIdAsignacion());
+            matricula.setIdAsignacion(
+                    dto.getIdAsignacion()
+            );
         }
 
         if (dto.getFechaMatricula() != null) {
-            matricula.setFechaMatricula(dto.getFechaMatricula());
+            matricula.setFechaMatricula(
+                    dto.getFechaMatricula()
+            );
         }
 
         return matriculaRepository.save(matricula);
     }
 
     public void eliminarMatricula(Integer id) {
-        Matricula matricula = obtenerMatriculaPorId(id);
+
+        Matricula matricula =
+                obtenerMatriculaPorId(id);
+
         matriculaRepository.delete(matricula);
+    }
+
+    public List<Matricula> listarPorAsignacionDocente(
+            Integer idAsignacion) {
+
+        AsignacionResponseDto asignacion =
+                academicoClient.listarMisAsignaciones()
+                        .stream()
+                        .filter(item ->
+                                item.getIdAsignacion()
+                                        .equals(idAsignacion)
+                        )
+                        .findFirst()
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.FORBIDDEN,
+                                        "La asignación no pertenece al docente autenticado"
+                                )
+                        );
+
+        if (!Boolean.TRUE.equals(
+                asignacion.getActivo())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La asignación no se encuentra activa"
+            );
+        }
+
+        return matriculaRepository
+                .findByIdAsignacion(idAsignacion);
     }
 
     private void validarAlumno(Integer idAlumno) {
 
         UsuarioResponseDto usuario =
-                usuarioClient.obtenerUsuarioPorId(idAlumno);
+                usuarioClient.obtenerUsuarioPorId(
+                        idAlumno
+                );
 
-        if (!Boolean.TRUE.equals(usuario.getActivo())) {
+        if (!Boolean.TRUE.equals(
+                usuario.getActivo())) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "El alumno no se encuentra activo"
@@ -168,10 +225,13 @@ public class MatriculaService {
                 usuario.getRoles()
                         .stream()
                         .anyMatch(rol ->
-                                "ALUMNO".equals(rol.getNombre())
+                                "ALUMNO".equals(
+                                        rol.getNombre()
+                                )
                         );
 
         if (!tieneRolAlumno) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "El usuario indicado no tiene rol ALUMNO"
@@ -179,12 +239,17 @@ public class MatriculaService {
         }
     }
 
-    private void validarAsignacion(Integer idAsignacion) {
+    private void validarAsignacion(
+            Integer idAsignacion) {
 
         AsignacionResponseDto asignacion =
-                academicoClient.obtenerAsignacionPorId(idAsignacion);
+                academicoClient.obtenerAsignacionPorId(
+                        idAsignacion
+                );
 
-        if (!Boolean.TRUE.equals(asignacion.getActivo())) {
+        if (!Boolean.TRUE.equals(
+                asignacion.getActivo())) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "La asignación no se encuentra activa"

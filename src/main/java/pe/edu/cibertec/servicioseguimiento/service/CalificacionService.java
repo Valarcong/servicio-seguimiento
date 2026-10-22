@@ -11,6 +11,7 @@ import pe.edu.cibertec.servicioseguimiento.entity.Calificacion;
 import pe.edu.cibertec.servicioseguimiento.entity.Matricula;
 import pe.edu.cibertec.servicioseguimiento.repository.CalificacionRepository;
 
+
 import java.util.List;
 
 @Service
@@ -138,11 +139,7 @@ public class CalificacionService {
                         nuevaMatricula
                 );
 
-        if (dto.getIdMatricula() != null
-                || dto.getIdTarea() != null) {
-
-            validarTarea(nuevaTarea, matricula);
-        }
+        validarTarea(nuevaTarea, matricula);
 
         boolean cambioRelacion =
                 !calificacion.getMatricula()
@@ -190,6 +187,11 @@ public class CalificacionService {
         Calificacion calificacion =
                 obtenerCalificacionPorId(id);
 
+        validarTarea(
+                calificacion.getIdTarea(),
+                calificacion.getMatricula()
+        );
+
         calificacionRepository.delete(calificacion);
     }
 
@@ -221,4 +223,81 @@ public class CalificacionService {
             );
         }
     }
+
+    public List<Calificacion> listarMisCalificaciones(
+            Integer idAlumno) {
+
+        return matriculaService.listarPorAlumno(idAlumno)
+                .stream()
+                .flatMap(matricula ->
+                        calificacionRepository
+                                .findByMatriculaIdMatricula(
+                                        matricula.getIdMatricula()
+                                )
+                                .stream()
+                )
+                .toList();
+    }
+
+    public List<Calificacion> listarPorMatriculaDocente(
+            Integer idMatricula) {
+
+        Matricula matricula =
+                matriculaService.obtenerMatriculaPorId(
+                        idMatricula
+                );
+
+        validarAsignacionDocente(
+                matricula.getIdAsignacion()
+        );
+
+        return calificacionRepository
+                .findByMatriculaIdMatricula(
+                        idMatricula
+                );
+    }
+
+    public List<Calificacion> listarPorTareaDocente(
+            Integer idTarea) {
+
+        TareaResponseDto tarea =
+                academicoClient.obtenerTareaPorId(
+                        idTarea
+                );
+
+        if (!Boolean.TRUE.equals(
+                tarea.getActivo())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La tarea no se encuentra activa"
+            );
+        }
+
+        return calificacionRepository
+                .findByIdTarea(idTarea);
+    }
+
+    private void validarAsignacionDocente(
+            Integer idAsignacion) {
+
+        boolean perteneceAlDocente =
+                academicoClient.listarMisAsignaciones()
+                        .stream()
+                        .anyMatch(asignacion ->
+                                asignacion.getIdAsignacion()
+                                        .equals(idAsignacion)
+                                        && Boolean.TRUE.equals(
+                                        asignacion.getActivo()
+                                )
+                        );
+
+        if (!perteneceAlDocente) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "La asignación no pertenece al docente autenticado"
+            );
+        }
+    }
+
 }

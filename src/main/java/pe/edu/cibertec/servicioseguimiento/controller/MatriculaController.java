@@ -2,6 +2,8 @@ package pe.edu.cibertec.servicioseguimiento.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import pe.edu.cibertec.servicioseguimiento.dto.MatriculaDto;
 import pe.edu.cibertec.servicioseguimiento.entity.Matricula;
@@ -17,6 +19,7 @@ public class MatriculaController {
 
     private final MatriculaService matriculaService;
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @GetMapping
     public ResponseEntity<List<Matricula>> listarMatriculas() {
         return ResponseEntity.ok(
@@ -24,6 +27,7 @@ public class MatriculaController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @GetMapping("/{id}")
     public ResponseEntity<Matricula> obtenerMatriculaPorId(
             @PathVariable Integer id) {
@@ -33,6 +37,7 @@ public class MatriculaController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @GetMapping("/alumno/{idAlumno}")
     public ResponseEntity<List<Matricula>> listarPorAlumno(
             @PathVariable Integer idAlumno) {
@@ -42,15 +47,19 @@ public class MatriculaController {
         );
     }
 
+    @PreAuthorize("hasRole('DOCENTE')")
     @GetMapping("/asignacion/{idAsignacion}")
     public ResponseEntity<List<Matricula>> listarPorAsignacion(
             @PathVariable Integer idAsignacion) {
 
         return ResponseEntity.ok(
-                matriculaService.listarPorAsignacion(idAsignacion)
+                matriculaService.listarPorAsignacionDocente(
+                        idAsignacion
+                )
         );
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PostMapping
     public ResponseEntity<Matricula> registrarMatricula(
             @RequestBody MatriculaDto dto) {
@@ -60,6 +69,7 @@ public class MatriculaController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PutMapping("/{id}")
     public ResponseEntity<Matricula> actualizarMatricula(
             @PathVariable Integer id,
@@ -70,6 +80,7 @@ public class MatriculaController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PatchMapping("/{id}")
     public ResponseEntity<Matricula> actualizarParcialmente(
             @PathVariable Integer id,
@@ -80,6 +91,7 @@ public class MatriculaController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> eliminarMatricula(
             @PathVariable Integer id) {
@@ -91,6 +103,19 @@ public class MatriculaController {
                         "mensaje",
                         "Matrícula eliminada correctamente"
                 )
+        );
+    }
+
+    @PreAuthorize("hasRole('ALUMNO')")
+    @GetMapping("/mis-matriculas")
+    public ResponseEntity<List<Matricula>> listarMisMatriculas(
+            Authentication authentication) {
+
+        Integer idAlumno =
+                (Integer) authentication.getDetails();
+
+        return ResponseEntity.ok(
+                matriculaService.listarPorAlumno(idAlumno)
         );
     }
 }

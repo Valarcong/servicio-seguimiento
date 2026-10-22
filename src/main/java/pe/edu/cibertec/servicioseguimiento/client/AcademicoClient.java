@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import pe.edu.cibertec.servicioseguimiento.client.dto.AsignacionResponseDto;
 import pe.edu.cibertec.servicioseguimiento.client.dto.TareaResponseDto;
 
+import java.util.List;
+
 @FeignClient(name = "servicio-academico")
 public interface AcademicoClient {
 
@@ -13,6 +15,9 @@ public interface AcademicoClient {
     AsignacionResponseDto obtenerAsignacionPorId(
             @PathVariable Integer idAsignacion
     );
+
+    @GetMapping("/api/v1/asignaciones/mis-asignaciones")
+    List<AsignacionResponseDto> listarMisAsignaciones();
 
     @GetMapping("/api/v1/tareas/{idTarea}")
     TareaResponseDto obtenerTareaPorId(
