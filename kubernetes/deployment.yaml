@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: servicio-seguimiento-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: servicio-seguimiento
+  template:
+    metadata:
+      labels:
+        app: servicio-seguimiento
+    spec:
+      containers:
+        - name: servicio-seguimiento
+          image: servicio-seguimiento:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+
+          env:
+            - name: CONFIG_SERVER_URL
+              value: "http://servidor-configuracion-service:8888"
+
+            - name: EUREKA_URL
+              value: "http://servidor-discovery-service:8761/eureka/"
+
+            - name: DB_URL
+              value: "jdbc:mysql://host.docker.internal:3306/lms_seguimiento"
+
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: servicio-seguimiento-service
+
+            - name: DB_USER
+              value: "root"
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: servicio-seguimiento-secrets
+                  key: DB_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: servicio-seguimiento-secrets
+                  key: JWT_SECRET
