@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import pe.edu.cibertec.servicioseguimiento.dto.MatriculaDto;
 import pe.edu.cibertec.servicioseguimiento.entity.Matricula;
 import pe.edu.cibertec.servicioseguimiento.service.MatriculaService;
+import pe.edu.cibertec.servicioseguimiento.dto.CursoAlumnoDto;
 
 import java.util.List;
 import java.util.Map;
@@ -116,6 +117,21 @@ public class MatriculaController {
 
         return ResponseEntity.ok(
                 matriculaService.listarPorAlumno(idAlumno)
+        );
+    }
+
+    @PreAuthorize("hasRole('ALUMNO')")
+    @GetMapping("/mis-cursos")
+    public ResponseEntity<List<CursoAlumnoDto>> listarMisCursos(
+            Authentication authentication) {
+
+        Integer idAlumno =
+                (Integer) authentication.getDetails();
+
+        return ResponseEntity.ok(
+                matriculaService.listarMisCursos(
+                        idAlumno
+                )
         );
     }
 }

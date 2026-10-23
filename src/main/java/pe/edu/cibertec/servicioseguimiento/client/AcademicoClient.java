@@ -23,4 +23,9 @@ public interface AcademicoClient {
     TareaResponseDto obtenerTareaPorId(
             @PathVariable Integer idTarea
     );
+
+    @GetMapping("/api/v1/tareas/asignacion/{idAsignacion}")
+    List<TareaResponseDto> listarTareasPorAsignacion(
+            @PathVariable Integer idAsignacion
+    );
 }

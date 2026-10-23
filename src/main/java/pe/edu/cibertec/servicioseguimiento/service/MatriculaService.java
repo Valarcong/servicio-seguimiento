@@ -11,6 +11,13 @@ import pe.edu.cibertec.servicioseguimiento.client.dto.UsuarioResponseDto;
 import pe.edu.cibertec.servicioseguimiento.dto.MatriculaDto;
 import pe.edu.cibertec.servicioseguimiento.entity.Matricula;
 import pe.edu.cibertec.servicioseguimiento.repository.MatriculaRepository;
+import pe.edu.cibertec.servicioseguimiento.client.dto.TareaResponseDto;
+import pe.edu.cibertec.servicioseguimiento.dto.CursoAlumnoDto;
+import pe.edu.cibertec.servicioseguimiento.dto.TareaAlumnoDto;
+import pe.edu.cibertec.servicioseguimiento.entity.Calificacion;
+import pe.edu.cibertec.servicioseguimiento.repository.CalificacionRepository;
+
+
 
 import java.util.List;
 
@@ -21,6 +28,7 @@ public class MatriculaService {
     private final MatriculaRepository matriculaRepository;
     private final UsuarioClient usuarioClient;
     private final AcademicoClient academicoClient;
+    private final CalificacionRepository calificacionRepository;
 
     public List<Matricula> listarMatriculas() {
         return matriculaRepository.findAll();
@@ -203,6 +211,181 @@ public class MatriculaService {
 
         return matriculaRepository
                 .findByIdAsignacion(idAsignacion);
+    }
+
+    public List<CursoAlumnoDto> listarMisCursos(
+            Integer idAlumno) {
+
+        return matriculaRepository
+                .findByIdAlumno(idAlumno)
+                .stream()
+                .filter(matricula ->
+                        Boolean.TRUE.equals(
+                                matricula.getActivo()
+                        )
+                )
+                .map(this::construirCursoAlumno)
+                .toList();
+    }
+
+    private CursoAlumnoDto construirCursoAlumno(
+            Matricula matricula) {
+
+        AsignacionResponseDto asignacion =
+                academicoClient.obtenerAsignacionPorId(
+                        matricula.getIdAsignacion()
+                );
+
+        CursoAlumnoDto dto =
+                new CursoAlumnoDto();
+
+        dto.setIdMatricula(
+                matricula.getIdMatricula()
+        );
+
+        dto.setIdAsignacion(
+                matricula.getIdAsignacion()
+        );
+
+        dto.setFechaMatricula(
+                matricula.getFechaMatricula()
+        );
+
+        if (asignacion.getCurso() != null) {
+
+            dto.setIdCurso(
+                    asignacion.getCurso()
+                            .getIdCurso()
+            );
+
+            dto.setCodigoCurso(
+                    asignacion.getCurso()
+                            .getCodigo()
+            );
+
+            dto.setNombreCurso(
+                    asignacion.getCurso()
+                            .getNombre()
+            );
+
+            dto.setDescripcionCurso(
+                    asignacion.getCurso()
+                            .getDescripcion()
+            );
+        }
+
+        if (asignacion.getPeriodo() != null) {
+
+            dto.setIdPeriodo(
+                    asignacion.getPeriodo()
+                            .getIdPeriodo()
+            );
+
+            dto.setPeriodo(
+                    asignacion.getPeriodo()
+                            .getNombre()
+            );
+
+            dto.setFechaInicioPeriodo(
+                    asignacion.getPeriodo()
+                            .getFechaInicio()
+            );
+
+            dto.setFechaFinPeriodo(
+                    asignacion.getPeriodo()
+                            .getFechaFin()
+            );
+        }
+
+        List<Calificacion> calificaciones =
+                calificacionRepository
+                        .findByMatriculaIdMatricula(
+                                matricula.getIdMatricula()
+                        );
+
+        List<TareaAlumnoDto> tareas =
+                academicoClient
+                        .listarTareasPorAsignacion(
+                                matricula.getIdAsignacion()
+                        )
+                        .stream()
+                        .filter(tarea ->
+                                Boolean.TRUE.equals(
+                                        tarea.getActivo()
+                                )
+                        )
+                        .map(tarea ->
+                                construirTareaAlumno(
+                                        tarea,
+                                        calificaciones
+                                )
+                        )
+                        .toList();
+
+        dto.setTareas(tareas);
+
+        return dto;
+    }
+
+    private TareaAlumnoDto construirTareaAlumno(
+            TareaResponseDto tarea,
+            List<Calificacion> calificaciones) {
+
+        TareaAlumnoDto dto =
+                new TareaAlumnoDto();
+
+        dto.setIdTarea(
+                tarea.getIdTarea()
+        );
+
+        dto.setTitulo(
+                tarea.getTitulo()
+        );
+
+        dto.setDescripcion(
+                tarea.getDescripcion()
+        );
+
+        dto.setFechaPublicacion(
+                tarea.getFechaPublicacion()
+        );
+
+        dto.setFechaEntrega(
+                tarea.getFechaEntrega()
+        );
+
+        Calificacion calificacion =
+                calificaciones
+                        .stream()
+                        .filter(item ->
+                                Boolean.TRUE.equals(
+                                        item.getActivo()
+                                )
+                                        &&
+                                        item.getIdTarea()
+                                                .equals(
+                                                        tarea.getIdTarea()
+                                                )
+                        )
+                        .findFirst()
+                        .orElse(null);
+
+        if (calificacion != null) {
+
+            dto.setIdCalificacion(
+                    calificacion.getIdCalificacion()
+            );
+
+            dto.setNota(
+                    calificacion.getNota()
+            );
+
+            dto.setFechaRegistro(
+                    calificacion.getFechaRegistro()
+            );
+        }
+
+        return dto;
     }
 
     private void validarAlumno(Integer idAlumno) {

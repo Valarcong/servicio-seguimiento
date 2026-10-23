@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: servicio-seguimiento
-          image: servicio-seguimiento:1.0
+          image: servicio-seguimiento:1.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
